@@ -19,10 +19,14 @@ public class JdbcLeituraDashboard implements LeituraDashboard {
   public Totais consultarTotais() {
     return jdbc.queryForObject(
         "SELECT "
-            + "COALESCE((SELECT SUM(valor_total) FROM indicadores.abastecimento_projecao), 0), "
-            + "COALESCE((SELECT SUM(valor) FROM indicadores.manutencao_projecao), 0), "
-            + "(SELECT COUNT(*) FROM indicadores.abastecimento_projecao), "
-            + "(SELECT COUNT(*) FROM indicadores.manutencao_projecao)",
+            + "COALESCE((SELECT SUM(valor_total) FROM indicadores.abastecimento_projecao"
+            + " WHERE excluido_em IS NULL), 0), "
+            + "COALESCE((SELECT SUM(valor) FROM indicadores.manutencao_projecao"
+            + " WHERE excluido_em IS NULL), 0), "
+            + "(SELECT COUNT(*) FROM indicadores.abastecimento_projecao"
+            + " WHERE excluido_em IS NULL), "
+            + "(SELECT COUNT(*) FROM indicadores.manutencao_projecao"
+            + " WHERE excluido_em IS NULL)",
         (resultado, linha) ->
             new Totais(
                 resultado.getBigDecimal(1),
@@ -38,7 +42,7 @@ public class JdbcLeituraDashboard implements LeituraDashboard {
             + " SELECT veiculo_id, tipo, proxima_manutencao,"
             + " ROW_NUMBER() OVER (PARTITION BY veiculo_id"
             + " ORDER BY realizada_em DESC, recebido_em DESC) AS posicao"
-            + " FROM indicadores.manutencao_projecao)"
+            + " FROM indicadores.manutencao_projecao WHERE excluido_em IS NULL)"
             + " SELECT TOP (?) veiculo_id, tipo, proxima_manutencao FROM recentes"
             + " WHERE posicao = 1 AND proxima_manutencao >= ?"
             + " ORDER BY proxima_manutencao, veiculo_id",

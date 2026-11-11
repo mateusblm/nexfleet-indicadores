@@ -64,12 +64,61 @@ public class ProjetarAbastecimento {
     return inserido ? Resultado.PROJETADO : Resultado.DUPLICATA_IGNORADA;
   }
 
+  /** Aplica a atualização só se a versão for maior que a projetada e não houver exclusão. */
   public Resultado atualizar(Atualizacao atualizacao) {
-    throw new UnsupportedOperationException("ainda não implementado");
+    if (atualizacao == null) {
+      throw new IllegalArgumentException("Evento de abastecimento incompleto.");
+    }
+    validar(new Entrada(
+        atualizacao.eventoId(),
+        atualizacao.abastecimentoId(),
+        atualizacao.veiculoId(),
+        atualizacao.motoristaId(),
+        atualizacao.realizadoEm(),
+        atualizacao.combustivel(),
+        atualizacao.litros(),
+        atualizacao.valorTotal(),
+        atualizacao.quilometragem(),
+        atualizacao.recebidoEm()));
+    boolean aplicada = projecoes.aplicarSeMaisNova(
+        atualizacao.eventoId(),
+        atualizacao.abastecimentoId(),
+        atualizacao.veiculoId(),
+        atualizacao.motoristaId(),
+        atualizacao.realizadoEm(),
+        atualizacao.combustivel(),
+        atualizacao.litros(),
+        atualizacao.valorTotal(),
+        atualizacao.quilometragem(),
+        versao(atualizacao.versao()),
+        atualizacao.recebidoEm());
+    return aplicada ? Resultado.PROJETADO : Resultado.IGNORADO;
   }
 
+  /** Marca o abastecimento como excluído; a marca vence registros e atualizações atrasados. */
   public Resultado excluir(Exclusao exclusao) {
-    throw new UnsupportedOperationException("ainda não implementado");
+    if (exclusao == null
+        || exclusao.eventoId() == null
+        || exclusao.abastecimentoId() == null
+        || exclusao.veiculoId() == null
+        || exclusao.recebidoEm() == null) {
+      throw new IllegalArgumentException("Evento de exclusão de abastecimento incompleto.");
+    }
+    boolean marcada = projecoes.marcarExcluido(
+        exclusao.eventoId(),
+        exclusao.abastecimentoId(),
+        exclusao.veiculoId(),
+        versao(exclusao.versao()),
+        exclusao.excluidoEm() == null ? exclusao.recebidoEm() : exclusao.excluidoEm(),
+        exclusao.recebidoEm());
+    return marcada ? Resultado.EXCLUIDO : Resultado.IGNORADO;
+  }
+
+  /** Eventos sem {@code versao} (anteriores à v1.1.0) valem 1. */
+  private static int versao(Integer versao) {
+    if (versao == null) return 1;
+    if (versao < 1) throw new IllegalArgumentException("Versão do abastecimento inválida.");
+    return versao;
   }
 
   private void validar(Entrada entrada) {
