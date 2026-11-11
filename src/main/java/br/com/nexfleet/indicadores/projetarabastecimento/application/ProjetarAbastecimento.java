@@ -1,5 +1,6 @@
 package br.com.nexfleet.indicadores.projetarabastecimento.application;
 
+import br.com.nexfleet.indicadores.projetarabastecimento.domain.ProjecaoAbastecimento;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -67,7 +68,7 @@ public class ProjetarAbastecimento {
   /** Aplica a atualização só se a versão for maior que a projetada e não houver exclusão. */
   public Resultado atualizar(Atualizacao atualizacao) {
     if (atualizacao == null) {
-      throw new IllegalArgumentException("Evento de abastecimento incompleto.");
+      throw new IllegalArgumentException(ProjecaoAbastecimento.INCOMPLETO);
     }
     validar(new Entrada(
         atualizacao.eventoId(),
@@ -90,56 +91,42 @@ public class ProjetarAbastecimento {
         atualizacao.litros(),
         atualizacao.valorTotal(),
         atualizacao.quilometragem(),
-        versao(atualizacao.versao()),
+        ProjecaoAbastecimento.versao(atualizacao.versao()),
         atualizacao.recebidoEm());
     return aplicada ? Resultado.PROJETADO : Resultado.IGNORADO;
   }
 
   /** Marca o abastecimento como excluído; a marca vence registros e atualizações atrasados. */
   public Resultado excluir(Exclusao exclusao) {
-    if (exclusao == null
-        || exclusao.eventoId() == null
-        || exclusao.abastecimentoId() == null
-        || exclusao.veiculoId() == null
-        || exclusao.recebidoEm() == null) {
+    if (exclusao == null) {
       throw new IllegalArgumentException("Evento de exclusão de abastecimento incompleto.");
     }
+    ProjecaoAbastecimento.validarExclusao(exclusao.eventoId(), exclusao.abastecimentoId(),
+        exclusao.veiculoId(), exclusao.recebidoEm());
     boolean marcada = projecoes.marcarExcluido(
         exclusao.eventoId(),
         exclusao.abastecimentoId(),
         exclusao.veiculoId(),
-        versao(exclusao.versao()),
-        exclusao.excluidoEm() == null ? exclusao.recebidoEm() : exclusao.excluidoEm(),
+        ProjecaoAbastecimento.versao(exclusao.versao()),
+        ProjecaoAbastecimento.momentoExclusao(exclusao.excluidoEm(), exclusao.recebidoEm()),
         exclusao.recebidoEm());
     return marcada ? Resultado.EXCLUIDO : Resultado.IGNORADO;
   }
 
-  /** Eventos sem {@code versao} (anteriores à v1.1.0) valem 1. */
-  private static int versao(Integer versao) {
-    if (versao == null) return 1;
-    if (versao < 1) throw new IllegalArgumentException("Versão do abastecimento inválida.");
-    return versao;
-  }
-
   private void validar(Entrada entrada) {
-    if (entrada == null
-        || entrada.eventoId() == null
-        || entrada.abastecimentoId() == null
-        || entrada.veiculoId() == null
-        || entrada.motoristaId() == null
-        || entrada.realizadoEm() == null
-        || entrada.combustivel() == null
-        || entrada.combustivel().isBlank()
-        || entrada.litros() == null
-        || entrada.valorTotal() == null
-        || entrada.quilometragem() == null
-        || entrada.recebidoEm() == null) {
-      throw new IllegalArgumentException("Evento de abastecimento incompleto.");
+    if (entrada == null) {
+      throw new IllegalArgumentException(ProjecaoAbastecimento.INCOMPLETO);
     }
-    if (entrada.litros().signum() <= 0
-        || entrada.valorTotal().signum() <= 0
-        || entrada.quilometragem() <= 0) {
-      throw new IllegalArgumentException("Valores do abastecimento devem ser positivos.");
-    }
+    ProjecaoAbastecimento.validarDados(
+        entrada.eventoId(),
+        entrada.abastecimentoId(),
+        entrada.veiculoId(),
+        entrada.motoristaId(),
+        entrada.realizadoEm(),
+        entrada.combustivel(),
+        entrada.litros(),
+        entrada.valorTotal(),
+        entrada.quilometragem(),
+        entrada.recebidoEm());
   }
 }
