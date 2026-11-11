@@ -14,7 +14,7 @@ Microsserviço de indicadores do NexFleet: consome os eventos operacionais da fr
 
 O NexFleet é uma plataforma de gestão de frotas empresariais: veículos, motoristas, vínculos, abastecimentos, manutenções, painel de custos e uma visão consolidada de eficiência.
 
-**Indicadores** é o lado de leitura orientado a eventos. Consome `AbastecimentoRegistrado` v1 e `ManutencaoRegistrada` v1 publicados pela outbox de Operações, do **Azure Service Bus** (nuvem) ou do **RabbitMQ** (local), e grava projeções no **Azure SQL** (schema `indicadores`, usuário de banco exclusivo, migrações Flyway). O BFF consulta o painel daqui e o combina com a situação da frota vinda de Frota.
+**Indicadores** é o lado de leitura orientado a eventos. Consome os seis eventos de abastecimento e manutenção (registro, atualização e exclusão, todos v1) publicados pela outbox de Operações, do **Azure Service Bus** (nuvem) ou do **RabbitMQ** (local), e grava projeções no **Azure SQL** (schema `indicadores`, usuário de banco exclusivo, migrações Flyway). O BFF consulta o painel daqui e o combina com a situação da frota vinda de Frota.
 
 ```mermaid
 flowchart LR
@@ -33,8 +33,10 @@ flowchart LR
 
 ## Funcionalidades
 
-- Consumo de `AbastecimentoRegistrado` v1 e `ManutencaoRegistrada` v1, com transporte selecionável: Service Bus (assinatura `indicadores-v1` do tópico `nexfleet-eventos-v1`) ou RabbitMQ.
-- **Projeções idempotentes**: um evento entregue mais de uma vez tem efeito uma única vez.
+- Consumo de `AbastecimentoRegistrado`, `AbastecimentoAtualizado`, `AbastecimentoExcluido`, `ManutencaoRegistrada`, `ManutencaoAtualizada` e `ManutencaoExcluida` (todos v1), com transporte selecionável: Service Bus (assinatura `indicadores-v1` do tópico `nexfleet-eventos-v1`) ou RabbitMQ.
+- **Projeções idempotentes** por `evento_id`: um evento entregue mais de uma vez tem efeito uma única vez.
+- **Eventos versionados**: uma atualização só é aplicada quando a `versao` é maior que a projetada (evento sem `versao` vale 1); eventos antigos ou fora de ordem são ignorados.
+- **Exclusão definitiva vence**: a exclusão vira uma marca (`excluido_em`) que nenhuma versão posterior desfaz, inclusive registro ou atualização que cheguem depois dela; se a exclusão chegar antes do registro, a marca fica guardada. O painel ignora linhas excluídas.
 - No RabbitMQ: até 3 tentativas com recuo exponencial (500 ms a 2 s) e, depois disso, envio para a fila de mensagens mortas (DLQ) de cada projeção.
 - Painel com gasto em abastecimentos, gasto em manutenções, gasto total, quantidade de registros e as 5 próximas manutenções programadas.
 - Readiness ligado ao banco: sem SQL disponível, responde `503`.
@@ -76,8 +78,8 @@ O OpenAPI do serviço é publicado em `/v3/api-docs` e reunido na Swagger UI do 
 
 | Evento | Service Bus | RabbitMQ (fila → DLQ) |
 |---|---|---|
-| `AbastecimentoRegistrado` v1 | `nexfleet-eventos-v1` / `indicadores-v1` | `nexfleet.indicadores.projecao-abastecimentos.v1.com-dlq` → `nexfleet.indicadores.projecao-abastecimentos.v1.dlq` |
-| `ManutencaoRegistrada` v1 | `nexfleet-eventos-v1` / `indicadores-v1` | `nexfleet.indicadores.projecao-manutencoes.v1.com-dlq` → `nexfleet.indicadores.projecao-manutencoes.v1.dlq` |
+| `AbastecimentoRegistrado`, `AbastecimentoAtualizado`, `AbastecimentoExcluido` v1 | `nexfleet-eventos-v1` / `indicadores-v1` | `nexfleet.indicadores.projecao-abastecimentos.v1.com-dlq` → `nexfleet.indicadores.projecao-abastecimentos.v1.dlq` |
+| `ManutencaoRegistrada`, `ManutencaoAtualizada`, `ManutencaoExcluida` v1 | `nexfleet-eventos-v1` / `indicadores-v1` | `nexfleet.indicadores.projecao-manutencoes.v1.com-dlq` → `nexfleet.indicadores.projecao-manutencoes.v1.dlq` |
 
 Contrato completo na [página AsyncAPI](https://white-mushroom-0cadda010.3.azurestaticapps.net/docs/eventos/).
 
@@ -124,7 +126,7 @@ docker run --rm -p 8084:8080 \
   -e RABBITMQ_HOST=<host-do-rabbitmq> \
   -e RABBITMQ_USER=<usuário> \
   -e RABBITMQ_PASSWORD=<senha> \
-  mateusblm/nexfleet-indicadores:v1.0.0
+  mateusblm/nexfleet-indicadores:v1.1.0
 ```
 
 Para gerar a imagem a partir do código: `docker build -t mateusblm/nexfleet-indicadores:local .`
