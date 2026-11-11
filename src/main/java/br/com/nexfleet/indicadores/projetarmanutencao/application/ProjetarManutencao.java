@@ -5,10 +5,17 @@ import java.time.*;
 import java.util.UUID;
 
 public class ProjetarManutencao {
-  public enum Resultado { PROJETADO, DUPLICATA_IGNORADA }
+  public enum Resultado { PROJETADO, DUPLICATA_IGNORADA, EXCLUIDO, IGNORADO }
   public record Entrada(UUID eventoId, UUID manutencaoId, UUID veiculoId, String tipo,
       LocalDate realizadaEm, Long quilometragem, String descricao, String oficina,
       BigDecimal valor, LocalDate proximaManutencao, Instant recebidoEm) {}
+  /** {@code ManutencaoAtualizada.v1}; {@code versao} ausente vale 1. */
+  public record Atualizacao(UUID eventoId, UUID manutencaoId, UUID veiculoId, String tipo,
+      LocalDate realizadaEm, Long quilometragem, String descricao, String oficina,
+      BigDecimal valor, LocalDate proximaManutencao, Integer versao, Instant recebidoEm) {}
+  /** {@code ManutencaoExcluida.v1}; {@code versao} ausente vale 1. */
+  public record Exclusao(UUID eventoId, UUID manutencaoId, UUID veiculoId, Integer versao,
+      Instant excluidoEm, Instant recebidoEm) {}
 
   private final ProjecoesManutencao projecoes;
   public ProjetarManutencao(ProjecoesManutencao projecoes) { this.projecoes = projecoes; }
@@ -20,6 +27,14 @@ public class ProjetarManutencao {
         entrada.descricao(), entrada.oficina(), entrada.valor(), entrada.proximaManutencao(),
         entrada.recebidoEm());
     return inserido ? Resultado.PROJETADO : Resultado.DUPLICATA_IGNORADA;
+  }
+
+  public Resultado atualizar(Atualizacao atualizacao) {
+    throw new UnsupportedOperationException("ainda não implementado");
+  }
+
+  public Resultado excluir(Exclusao exclusao) {
+    throw new UnsupportedOperationException("ainda não implementado");
   }
 
   private void validar(Entrada entrada) {
