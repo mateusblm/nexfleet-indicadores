@@ -1,6 +1,6 @@
 # NexFleet — Indicadores
 
-Microsserviço do painel de custos e situação da frota do NexFleet, plataforma acadêmica de gestão de frotas (PJBL, PUCPR). Parte da v1.0.0; o sistema completo está no repositório guarda-chuva [nexfleet](https://github.com/mateusblm/nexfleet).
+Microsserviço do painel de custos e situação da frota do NexFleet, plataforma de gestão de frotas. Parte da v1.0.0; o sistema completo está no repositório guarda-chuva [nexfleet](https://github.com/mateusblm/nexfleet).
 
 ## Arquitetura
 
@@ -77,7 +77,7 @@ Imagem Docker: [`mateusblm/nexfleet-indicadores:v1.0.0`](https://hub.docker.com/
 
 > **Partida a frio:** os Container Apps escalam a zero e o Azure SQL pausa sem uso. A primeira chamada após um período de inatividade pode levar de 1 a 2 minutos (ou responder 503/504); tente de novo em seguida.
 
-## Alunos
+## Equipe
 
 - Vinícius dos Reis Góes
 - Mateus Burlamaqui
