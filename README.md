@@ -41,14 +41,16 @@ flowchart LR
 
 ## Arquitetura
 
-**Clean Architecture + Vertical Slice.** Cada caso de uso é uma fatia em `br.com.nexfleet.indicadores`. As regras ficam nos casos de uso da camada `application`; o serviço não tem pacote `domain` separado.
+**Clean Architecture + Vertical Slice.** Cada caso de uso é uma fatia em `br.com.nexfleet.indicadores`. As regras puras dos eventos projetados ficam em `domain` (sem Spring, JDBC nem Jackson); `application` orquestra os casos de uso e define as portas; `infrastructure` e `api` são adaptadores.
 
 | Fatia | Camadas | Responsabilidade |
 |---|---|---|
-| `projetarabastecimento` | `application`, `infrastructure` | Projetar `AbastecimentoRegistrado`; consumidor e topologia RabbitMQ (filas, DLX e DLQ) |
-| `projetarmanutencao` | `application`, `infrastructure` | Projetar `ManutencaoRegistrada` |
+| `projetarabastecimento` | `application`, `domain`, `infrastructure` | Projetar registro, atualização e exclusão de abastecimento; consumidor e topologia RabbitMQ (filas, DLX e DLQ) |
+| `projetarmanutencao` | `application`, `domain`, `infrastructure` | Projetar registro, atualização e exclusão de manutenção |
 | `consultardashboard` | `api`, `application`, `infrastructure` | Painel de gastos e próximas manutenções |
 | `consultarservico` | `api`, `application`, `infrastructure` | Informações do serviço e verificação do banco |
+
+No `domain` ficam as validações dos eventos, a versão padrão de eventos sem `versao` e a data da exclusão. A regra de só aplicar versão maior e de a marca de exclusão vencer eventos atrasados é executada atomicamente no `MERGE` do adaptador SQL, por isso fica em `infrastructure`. `consultardashboard` e `consultarservico` só leem e compõem dados e não têm `domain`.
 
 Pacotes técnicos: `servicebus/infrastructure` (consumidor do Service Bus), `infrastructure` (inserção idempotente), `config` e `observability` (correlação).
 
@@ -56,6 +58,7 @@ Regras verificadas pelo ArchUnit (`ArchitectureTest`):
 
 - persistência (JDBC, `java.sql`, JPA) só em `infrastructure`;
 - todo código fica em `api`, `application`, `domain`, `infrastructure` ou nos pacotes técnicos conhecidos;
+- `domain` não depende de `application`, `infrastructure`, `api`, `config`, Spring, Jakarta, JDBC nem Jackson;
 - `application` não depende de framework nem de adaptadores;
 - `api` não acessa a persistência diretamente;
 - nenhuma classe importa código interno de outros serviços.
