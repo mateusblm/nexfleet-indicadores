@@ -97,4 +97,20 @@ public class RabbitTopologyConfig {
       @Value("${nexfleet.eventos.manutencao-routing-key}") String routingKey) {
     return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
+
+  Binding abastecimentoAtualizadoBinding(TopicExchange e, Queue f, String k) {
+    throw new UnsupportedOperationException("ainda não implementado");
+  }
+
+  Binding abastecimentoExcluidoBinding(TopicExchange e, Queue f, String k) {
+    throw new UnsupportedOperationException("ainda não implementado");
+  }
+
+  Binding manutencaoAtualizadaBinding(TopicExchange e, Queue f, String k) {
+    throw new UnsupportedOperationException("ainda não implementado");
+  }
+
+  Binding manutencaoExcluidaBinding(TopicExchange e, Queue f, String k) {
+    throw new UnsupportedOperationException("ainda não implementado");
+  }
 }
