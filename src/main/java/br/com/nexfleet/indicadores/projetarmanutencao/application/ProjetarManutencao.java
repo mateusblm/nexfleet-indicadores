@@ -29,12 +29,34 @@ public class ProjetarManutencao {
     return inserido ? Resultado.PROJETADO : Resultado.DUPLICATA_IGNORADA;
   }
 
-  public Resultado atualizar(Atualizacao atualizacao) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  /** Aplica a atualização só se a versão for maior que a projetada e não houver exclusão. */
+  public Resultado atualizar(Atualizacao a) {
+    if (a == null) throw new IllegalArgumentException("Evento de manutenção incompleto.");
+    validar(new Entrada(a.eventoId(), a.manutencaoId(), a.veiculoId(), a.tipo(),
+        a.realizadaEm(), a.quilometragem(), a.descricao(), a.oficina(), a.valor(),
+        a.proximaManutencao(), a.recebidoEm()));
+    boolean aplicada = projecoes.aplicarSeMaisNova(a.eventoId(), a.manutencaoId(),
+        a.veiculoId(), a.tipo(), a.realizadaEm(), a.quilometragem(), a.descricao(),
+        a.oficina(), a.valor(), a.proximaManutencao(), versao(a.versao()), a.recebidoEm());
+    return aplicada ? Resultado.PROJETADO : Resultado.IGNORADO;
   }
 
-  public Resultado excluir(Exclusao exclusao) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  /** Marca a manutenção como excluída; a marca vence registros e atualizações atrasados. */
+  public Resultado excluir(Exclusao e) {
+    if (e == null || e.eventoId() == null || e.manutencaoId() == null
+        || e.veiculoId() == null || e.recebidoEm() == null)
+      throw new IllegalArgumentException("Evento de exclusão de manutenção incompleto.");
+    boolean marcada = projecoes.marcarExcluido(e.eventoId(), e.manutencaoId(), e.veiculoId(),
+        versao(e.versao()), e.excluidoEm() == null ? e.recebidoEm() : e.excluidoEm(),
+        e.recebidoEm());
+    return marcada ? Resultado.EXCLUIDO : Resultado.IGNORADO;
+  }
+
+  /** Eventos sem {@code versao} (anteriores à v1.1.0) valem 1. */
+  private static int versao(Integer versao) {
+    if (versao == null) return 1;
+    if (versao < 1) throw new IllegalArgumentException("Versão da manutenção inválida.");
+    return versao;
   }
 
   private void validar(Entrada entrada) {
