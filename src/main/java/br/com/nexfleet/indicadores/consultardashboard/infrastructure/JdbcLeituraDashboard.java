@@ -39,15 +39,15 @@ public class JdbcLeituraDashboard implements LeituraDashboard {
             + " ROW_NUMBER() OVER (PARTITION BY veiculo_id"
             + " ORDER BY realizada_em DESC, recebido_em DESC) AS posicao"
             + " FROM indicadores.manutencao_projecao)"
-            + " SELECT veiculo_id, tipo, proxima_manutencao FROM recentes"
+            + " SELECT TOP (?) veiculo_id, tipo, proxima_manutencao FROM recentes"
             + " WHERE posicao = 1 AND proxima_manutencao >= ?"
-            + " ORDER BY proxima_manutencao, veiculo_id LIMIT ?",
+            + " ORDER BY proxima_manutencao, veiculo_id",
         (resultado, linha) ->
             new ProximaManutencao(
                 resultado.getObject("veiculo_id", java.util.UUID.class),
                 resultado.getString("tipo"),
                 resultado.getObject("proxima_manutencao", LocalDate.class)),
-        hoje,
-        limite);
+        limite,
+        hoje);
   }
 }
