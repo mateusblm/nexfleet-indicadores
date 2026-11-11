@@ -98,19 +98,31 @@ public class RabbitTopologyConfig {
     return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
 
-  Binding abastecimentoAtualizadoBinding(TopicExchange e, Queue f, String k) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  @Bean
+  Binding abastecimentoAtualizadoBinding(TopicExchange eventosExchange,
+      @Qualifier("abastecimentosQueue") Queue fila,
+      @Value("${nexfleet.eventos.abastecimento-atualizado-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
 
-  Binding abastecimentoExcluidoBinding(TopicExchange e, Queue f, String k) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  @Bean
+  Binding abastecimentoExcluidoBinding(TopicExchange eventosExchange,
+      @Qualifier("abastecimentosQueue") Queue fila,
+      @Value("${nexfleet.eventos.abastecimento-excluido-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
 
-  Binding manutencaoAtualizadaBinding(TopicExchange e, Queue f, String k) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  @Bean
+  Binding manutencaoAtualizadaBinding(TopicExchange eventosExchange,
+      @Qualifier("manutencoesQueue") Queue fila,
+      @Value("${nexfleet.eventos.manutencao-atualizada-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
 
-  Binding manutencaoExcluidaBinding(TopicExchange e, Queue f, String k) {
-    throw new UnsupportedOperationException("ainda não implementado");
+  @Bean
+  Binding manutencaoExcluidaBinding(TopicExchange eventosExchange,
+      @Qualifier("manutencoesQueue") Queue fila,
+      @Value("${nexfleet.eventos.manutencao-excluida-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
 }
