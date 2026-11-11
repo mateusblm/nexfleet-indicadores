@@ -1,6 +1,6 @@
 package br.com.nexfleet.indicadores.projetarmanutencao.infrastructure;
 
-import br.com.nexfleet.indicadores.persistencia.InsercaoIdempotente;
+import br.com.nexfleet.indicadores.infrastructure.InsercaoIdempotente;
 import br.com.nexfleet.indicadores.projetarmanutencao.application.ProjecoesManutencao;
 import java.math.BigDecimal;
 import java.sql.Types;

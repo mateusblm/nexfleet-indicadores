@@ -1,6 +1,6 @@
 package br.com.nexfleet.indicadores.projetarabastecimento.infrastructure;
 
-import br.com.nexfleet.indicadores.persistencia.InsercaoIdempotente;
+import br.com.nexfleet.indicadores.infrastructure.InsercaoIdempotente;
 import br.com.nexfleet.indicadores.projetarabastecimento.application.ProjecoesAbastecimento;
 import java.math.BigDecimal;
 import java.time.Instant;

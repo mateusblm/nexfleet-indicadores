@@ -1,4 +1,4 @@
-package br.com.nexfleet.indicadores.persistencia;
+package br.com.nexfleet.indicadores.infrastructure;
 
 import java.util.function.IntSupplier;
 import org.springframework.dao.ConcurrencyFailureException;
