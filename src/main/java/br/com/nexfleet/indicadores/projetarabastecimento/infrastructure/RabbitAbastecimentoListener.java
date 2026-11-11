@@ -2,9 +2,7 @@ package br.com.nexfleet.indicadores.projetarabastecimento.infrastructure;
 
 import br.com.nexfleet.indicadores.observability.CorrelationIds;
 import br.com.nexfleet.indicadores.projetarabastecimento.application.ProjetarAbastecimento;
-import java.math.BigDecimal;
 import java.time.Clock;
-import java.time.Instant;
 import java.util.UUID;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -15,32 +13,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * Fila de abastecimentos: registro, atualização e exclusão chegam pela mesma fila e se
+ * distinguem pelo cabeçalho {@code eventoTipo} (ausente = registro, como antes da v1.1.0).
+ */
 @Component
 @ConditionalOnProperty(name = "nexfleet.messaging.provider", havingValue = "rabbit", matchIfMissing = true)
 public class RabbitAbastecimentoListener {
   private static final Logger LOG = LoggerFactory.getLogger(RabbitAbastecimentoListener.class);
-  private record Payload(
-      UUID eventoId,
-      UUID abastecimentoId,
-      UUID veiculoId,
-      UUID motoristaId,
-      Instant realizadoEm,
-      String combustivel,
-      BigDecimal litros,
-      BigDecimal valorTotal,
-      Long quilometragem) {}
+  static final String CABECALHO_TIPO = "eventoTipo";
 
-  private final ProjetarAbastecimento casoDeUso;
-  private final ObjectMapper json;
-  private final Clock relogio;
+  private final EventosAbastecimento eventos;
 
   public RabbitAbastecimentoListener(
       ProjetarAbastecimento casoDeUso,
       ObjectMapper json,
       Clock relogio) {
-    this.casoDeUso = casoDeUso;
-    this.json = json;
-    this.relogio = relogio;
+    this.eventos = new EventosAbastecimento(casoDeUso, json, relogio);
   }
 
   @RabbitListener(queues = "${nexfleet.eventos.indicadores-queue}")
@@ -48,24 +37,10 @@ public class RabbitAbastecimentoListener {
   public void consumir(Message mensagem) {
     String correlationId = CorrelationIds.from(mensagem);
     try (var ignored = CorrelationIds.open(correlationId)) {
-      Payload payload = json.readValue(mensagem.getBody(), Payload.class);
-      casoDeUso.executar(new ProjetarAbastecimento.Entrada(
-          payload.eventoId(),
-          payload.abastecimentoId(),
-          payload.veiculoId(),
-          payload.motoristaId(),
-          payload.realizadoEm(),
-          payload.combustivel(),
-          payload.litros(),
-          payload.valorTotal(),
-          payload.quilometragem(),
-          Instant.now(relogio)));
-      LOG.info("event_consumed eventId={} eventType=AbastecimentoRegistrado",
-          payload.eventoId());
-    } catch (RuntimeException falha) {
-      throw falha;
-    } catch (Exception falha) {
-      throw new IllegalArgumentException("Evento de abastecimento inválido.", falha);
+      Object cabecalho = mensagem.getMessageProperties().getHeader(CABECALHO_TIPO);
+      String tipo = cabecalho == null ? EventosAbastecimento.REGISTRADO : cabecalho.toString();
+      UUID eventoId = eventos.consumir(tipo, mensagem.getBody());
+      LOG.info("event_consumed eventId={} eventType={}", eventoId, tipo);
     }
   }
 }

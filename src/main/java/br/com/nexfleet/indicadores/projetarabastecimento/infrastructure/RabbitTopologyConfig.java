@@ -97,4 +97,32 @@ public class RabbitTopologyConfig {
       @Value("${nexfleet.eventos.manutencao-routing-key}") String routingKey) {
     return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
   }
+
+  @Bean
+  Binding abastecimentoAtualizadoBinding(TopicExchange eventosExchange,
+      @Qualifier("abastecimentosQueue") Queue fila,
+      @Value("${nexfleet.eventos.abastecimento-atualizado-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
+  }
+
+  @Bean
+  Binding abastecimentoExcluidoBinding(TopicExchange eventosExchange,
+      @Qualifier("abastecimentosQueue") Queue fila,
+      @Value("${nexfleet.eventos.abastecimento-excluido-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
+  }
+
+  @Bean
+  Binding manutencaoAtualizadaBinding(TopicExchange eventosExchange,
+      @Qualifier("manutencoesQueue") Queue fila,
+      @Value("${nexfleet.eventos.manutencao-atualizada-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
+  }
+
+  @Bean
+  Binding manutencaoExcluidaBinding(TopicExchange eventosExchange,
+      @Qualifier("manutencoesQueue") Queue fila,
+      @Value("${nexfleet.eventos.manutencao-excluida-routing-key}") String routingKey) {
+    return BindingBuilder.bind(fila).to(eventosExchange).with(routingKey);
+  }
 }

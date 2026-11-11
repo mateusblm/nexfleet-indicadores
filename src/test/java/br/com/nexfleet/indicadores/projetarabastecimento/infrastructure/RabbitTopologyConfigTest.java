@@ -50,4 +50,37 @@ class RabbitTopologyConfigTest {
         .containsEntry("x-dead-letter-routing-key", "manutencao.falhou");
     assertThat(binding.getDestination()).isEqualTo("manutencoes.dlq");
   }
+
+  @Test
+  void deveVincularAtualizacaoEExclusaoAFilaDeAbastecimentos() {
+    var exchange = config.eventosExchange("nexfleet.eventos");
+    Queue fila = config.abastecimentosQueue("abastecimentos", "eventos.dlx", "falhou");
+
+    Binding atualizado = config.abastecimentoAtualizadoBinding(
+        exchange, fila, "operacoes.abastecimento.atualizado.v1");
+    Binding excluido = config.abastecimentoExcluidoBinding(
+        exchange, fila, "operacoes.abastecimento.excluido.v1");
+
+    assertThat(atualizado.getDestination()).isEqualTo("abastecimentos");
+    assertThat(atualizado.getExchange()).isEqualTo("nexfleet.eventos");
+    assertThat(atualizado.getRoutingKey()).isEqualTo("operacoes.abastecimento.atualizado.v1");
+    assertThat(excluido.getDestination()).isEqualTo("abastecimentos");
+    assertThat(excluido.getRoutingKey()).isEqualTo("operacoes.abastecimento.excluido.v1");
+  }
+
+  @Test
+  void deveVincularAtualizacaoEExclusaoAFilaDeManutencoes() {
+    var exchange = config.eventosExchange("nexfleet.eventos");
+    Queue fila = config.manutencoesQueue("manutencoes", "eventos.dlx", "falhou");
+
+    Binding atualizada = config.manutencaoAtualizadaBinding(
+        exchange, fila, "operacoes.manutencao.atualizada.v1");
+    Binding excluida = config.manutencaoExcluidaBinding(
+        exchange, fila, "operacoes.manutencao.excluida.v1");
+
+    assertThat(atualizada.getDestination()).isEqualTo("manutencoes");
+    assertThat(atualizada.getRoutingKey()).isEqualTo("operacoes.manutencao.atualizada.v1");
+    assertThat(excluida.getDestination()).isEqualTo("manutencoes");
+    assertThat(excluida.getRoutingKey()).isEqualTo("operacoes.manutencao.excluida.v1");
+  }
 }

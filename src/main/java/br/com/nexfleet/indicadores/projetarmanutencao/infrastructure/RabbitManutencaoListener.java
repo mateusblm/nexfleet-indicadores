@@ -2,8 +2,7 @@ package br.com.nexfleet.indicadores.projetarmanutencao.infrastructure;
 
 import br.com.nexfleet.indicadores.observability.CorrelationIds;
 import br.com.nexfleet.indicadores.projetarmanutencao.application.ProjetarManutencao;
-import java.math.BigDecimal;
-import java.time.*;
+import java.time.Clock;
 import java.util.UUID;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -14,21 +13,20 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
+/**
+ * Fila de manutenções: registro, atualização e exclusão chegam pela mesma fila e se
+ * distinguem pelo cabeçalho {@code eventoTipo} (ausente = registro, como antes da v1.1.0).
+ */
 @Component
 @ConditionalOnProperty(name = "nexfleet.messaging.provider", havingValue = "rabbit", matchIfMissing = true)
 public class RabbitManutencaoListener {
   private static final Logger LOG = LoggerFactory.getLogger(RabbitManutencaoListener.class);
-  private record Payload(UUID eventoId, UUID manutencaoId, UUID veiculoId, String tipo,
-      LocalDate realizadaEm, Long quilometragem, String descricao, String oficina,
-      BigDecimal valor, LocalDate proximaManutencao) {}
+  static final String CABECALHO_TIPO = "eventoTipo";
 
-  private final ProjetarManutencao casoDeUso;
-  private final ObjectMapper json;
-  private final Clock relogio;
+  private final EventosManutencao eventos;
+
   public RabbitManutencaoListener(ProjetarManutencao casoDeUso, ObjectMapper json, Clock relogio) {
-    this.casoDeUso = casoDeUso;
-    this.json = json;
-    this.relogio = relogio;
+    this.eventos = new EventosManutencao(casoDeUso, json, relogio);
   }
 
   @RabbitListener(queues = "${nexfleet.eventos.manutencao-indicadores-queue}")
@@ -36,14 +34,10 @@ public class RabbitManutencaoListener {
   public void consumir(Message mensagem) {
     String correlationId = CorrelationIds.from(mensagem);
     try (var ignored = CorrelationIds.open(correlationId)) {
-      Payload p = json.readValue(mensagem.getBody(), Payload.class);
-      casoDeUso.executar(new ProjetarManutencao.Entrada(p.eventoId(), p.manutencaoId(),
-          p.veiculoId(), p.tipo(), p.realizadaEm(), p.quilometragem(), p.descricao(),
-          p.oficina(), p.valor(), p.proximaManutencao(), Instant.now(relogio)));
-      LOG.info("event_consumed eventId={} eventType=ManutencaoRegistrada", p.eventoId());
-    } catch (RuntimeException falha) { throw falha; }
-    catch (Exception falha) {
-      throw new IllegalArgumentException("Evento de manutenção inválido.", falha);
+      Object cabecalho = mensagem.getMessageProperties().getHeader(CABECALHO_TIPO);
+      String tipo = cabecalho == null ? EventosManutencao.REGISTRADA : cabecalho.toString();
+      UUID eventoId = eventos.consumir(tipo, mensagem.getBody());
+      LOG.info("event_consumed eventId={} eventType={}", eventoId, tipo);
     }
   }
 }
